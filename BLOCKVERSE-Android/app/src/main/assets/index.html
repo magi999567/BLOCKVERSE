@@ -1,11 +1,305 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BLOCKVERSE</title><style>
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#172c56,#080d1c 60%);color:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;min-height:100vh}.wrap{width:min(100%,480px);padding:24px 16px 30px;text-align:center}.logo{font-size:34px;font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 12px #00d9ff,0 0 28px #006bff;margin:8px 0 4px}.tag{color:#8ca9cf;letter-spacing:3px;font-size:10px;margin-bottom:22px}.stats{display:flex;justify-content:space-between;margin:0 auto 14px;max-width:340px}.stat{background:#111d35;border:1px solid #24456e;border-radius:12px;padding:9px 18px;min-width:100px}.stat small{display:block;color:#8ca9cf;font-size:10px;letter-spacing:1px}.stat b{font-size:22px;color:#54eaff}.board{width:min(92vw,350px);aspect-ratio:1;margin:0 auto;background:#101a30;border:2px solid #24456e;border-radius:12px;padding:5px;display:grid;grid-template-columns:repeat(10,1fr);gap:3px;box-shadow:0 0 25px #006bff33}.cell{background:#1a2944;border-radius:4px}.cell.on{background:linear-gradient(135deg,#00e5ff,#3978ff);box-shadow:inset 0 0 7px #fff6,0 0 7px #00bfff88}.pieces{display:flex;justify-content:space-around;align-items:center;min-height:112px;margin:16px auto 8px;max-width:340px}.piece{display:grid;gap:3px;touch-action:manipulation;padding:9px;border:1px solid #24456e;border-radius:10px;background:#111d35;min-width:86px;min-height:78px;align-content:center;justify-content:center}.piecegrid{display:grid;gap:3px}.pblock{width:19px;height:19px;border-radius:4px;background:linear-gradient(135deg,#00e5ff,#3978ff);box-shadow:0 0 6px #00bfff88}.piece.selected{border-color:#00e5ff;box-shadow:0 0 15px #00cfff66}.hint{color:#8ca9cf;font-size:12px;margin:8px 0 15px}button{border:0;border-radius:22px;padding:12px 30px;background:linear-gradient(90deg,#00cfff,#426dff);color:#061226;font-weight:800;font-size:14px;letter-spacing:1px}.over{color:#ff829b;font-weight:bold;min-height:20px}
-</style></head><body><main class="wrap"><div class="logo">BLOCKVERSE</div><div class="tag">PUZZLE • PLAY • WIN</div><div class="stats"><div class="stat"><small>SCORE</small><b id="score">0</b></div><div class="stat"><small>BEST</small><b id="best">0</b></div></div><div id="board" class="board"></div><div class="pieces" id="pieces"></div><div class="hint">Select a block, then tap an empty square to place it.</div><div class="over" id="message"></div><button onclick="newGame()">NEW GAME</button></main><script>
-const shapes=[[[0,0]],[[0,0],[0,1]],[[0,0],[1,0]],[[0,0],[0,1],[1,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,0],[2,0]],[[0,0],[0,1],[1,0],[1,1]],[[0,0],[0,1],[0,2],[1,1]],[[0,1],[1,0],[1,1],[1,2]],[[0,0],[1,0],[1,1],[2,1]]];let grid,score=0,items=[],selected=0,best=+(localStorage.bvbest||0);document.getElementById('best').textContent=best;
-function newGame(){grid=Array.from({length:10},()=>Array(10).fill(0));score=0;document.getElementById('score').textContent=0;document.getElementById('message').textContent='';makePieces();draw()}
-function makePieces(){items=Array.from({length:3},()=>shapes[Math.floor(Math.random()*shapes.length)]);selected=0;drawPieces()}
-function drawPieces(){let el=document.getElementById('pieces');el.innerHTML='';items.forEach((s,i)=>{let p=document.createElement('div');p.className='piece'+(i===selected?' selected':'');let h=Math.max(...s.map(x=>x[0]))+1,w=Math.max(...s.map(x=>x[1]))+1;p.onclick=()=>{selected=i;drawPieces()};let g=document.createElement('div');g.className='piecegrid';g.style.gridTemplateColumns=`repeat(${w},19px)`;for(let y=0;y<h;y++)for(let x=0;x<w;x++){let b=document.createElement('div');if(s.some(a=>a[0]===y&&a[1]===x)){b.className='pblock'}else{b.style.width='19px';b.style.height='19px'}g.appendChild(b)}p.appendChild(g);el.appendChild(p)})}
-function draw(){let el=document.getElementById('board');el.innerHTML='';for(let y=0;y<10;y++)for(let x=0;x<10;x++){let c=document.createElement('div');c.className='cell'+(grid[y][x]?' on':'');c.onclick=()=>place(y,x);el.appendChild(c)}}
-function fits(s,y,x){return s.every(([dy,dx])=>y+dy<10&&x+dx<10&&!grid[y+dy][x+dx])}
-function place(y,x){let s=items[selected];if(!s||!fits(s,y,x))return;for(let [dy,dx] of s)grid[y+dy][x+dx]=1;score+=s.length;items[selected]=null;let clear=[];for(let r=0;r<10;r++)if(grid[r].every(Boolean))clear.push(['r',r]);for(let c=0;c<10;c++)if(grid.every(row=>row[c]))clear.push(['c',c]);for(let [t,n] of clear){if(t==='r')grid[n].fill(0);else for(let r=0;r<10;r++)grid[r][n]=0;score+=10}document.getElementById('score').textContent=score;if(score>best){best=score;localStorage.bvbest=best;document.getElementById('best').textContent=best}if(items.every(v=>v===null))makePieces();else{let next=items.findIndex(v=>v!==null);selected=next;drawPieces()}draw();if(!items.some(s=>s&&Array.from({length:10},(_,r)=>Array.from({length:10},(_,c)=>fits(s,r,c))).some(row=>row.some(Boolean))))document.getElementById('message').textContent='GAME OVER — Start a new game!'}newGame();
-</script></body></html>
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>BLOCKVERSE</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#f4f6fa;color:#263238;
+ font-family:Arial,sans-serif;
+ display:flex;justify-content:center;min-height:100vh;
+ touch-action:pan-y;
+}
+.game{width:100%;max-width:480px;padding:18px 14px 24px;text-align:center}
+h1{font-size:30px;letter-spacing:3px;margin:8px 0;color:#263b65}
+.sub{font-size:11px;color:#8993a5;letter-spacing:2px;margin-bottom:20px}
+.stats{display:flex;justify-content:space-around;margin-bottom:18px}
+.stat{background:white;border-radius:12px;padding:10px 25px;box-shadow:0 2px 8px #0000000c;min-width:120px}
+.stat small{display:block;color:#8993a5;font-size:11px}
+.stat b{font-size:25px;color:#273c68}
+.board{
+ width:min(94vw,390px);aspect-ratio:1;
+ margin:auto;background:#dce2ed;padding:5px;
+ border-radius:9px;display:grid;
+ grid-template-columns:repeat(10,1fr);
+ grid-template-rows:repeat(10,1fr);gap:3px;
+ touch-action:none;position:relative;
+}
+.cell{background:#f7f8fb;border-radius:3px;min-width:0;min-height:0}
+.cell.filled{background:#4b83e6;box-shadow:inset 0 1px 2px #ffffff55}
+.cell.preview{background:#9fc2ff}
+.cell.bad{background:#ffaaaa}
+.pieces{height:125px;display:flex;align-items:center;justify-content:space-around;margin:14px auto 5px;gap:8px}
+.piece{
+ flex:1;min-width:0;height:105px;display:flex;align-items:center;justify-content:center;
+ background:white;border-radius:12px;box-shadow:0 2px 8px #0000000c;
+ touch-action:none;user-select:none;-webkit-user-select:none;
+}
+.piece.used{opacity:.2;pointer-events:none}
+.piece.active{outline:2px solid #4b83e6}
+.shape{display:grid;gap:3px;pointer-events:none}
+.block{width:clamp(13px,4.4vw,20px);height:clamp(13px,4.4vw,20px);border-radius:3px;background:#4b83e6}
+.piece .block{background:#4b83e6}
+.hint{font-size:12px;color:#8993a5;margin:12px 0}
+button{
+ border:0;background:#4b83e6;color:white;font-size:14px;font-weight:bold;
+ padding:13px 32px;border-radius:25px;margin-top:8px
+}
+.message{height:25px;color:#e05252;font-weight:bold;font-size:15px}
+.ghost{
+ position:fixed;z-index:10;pointer-events:none;display:grid;gap:3px;
+ opacity:.85;transform:translate(-50%,-50%);
+}
+.ghost .block{width:23px;height:23px}
+</style>
+</head>
+<body>
+<main class="game">
+<h1>BLOCKVERSE</h1>
+<div class="sub">CLASSIC BLOCK PUZZLE</div>
+
+<div class="stats">
+ <div class="stat"><small>SCORE</small><b id="score">0</b></div>
+ <div class="stat"><small>BEST</small><b id="best">0</b></div>
+</div>
+
+<div id="board" class="board"></div>
+<div id="pieces" class="pieces"></div>
+<div class="hint">Drag blocks onto the board to play</div>
+<div id="message" class="message"></div>
+<button onclick="newGame()">NEW GAME</button>
+</main>
+
+<script>
+const SIZE=10;
+
+const shapes=[
+ [[0,0]],
+ [[0,0],[0,1]],
+ [[0,0],[1,0]],
+ [[0,0],[0,1],[1,0]],
+ [[0,0],[1,0],[1,1]],
+ [[0,0],[0,1],[0,2]],
+ [[0,0],[1,0],[2,0]],
+ [[0,0],[0,1],[1,0],[1,1]],
+ [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
+ [[0,0],[0,1],[1,1],[1,2]],
+ [[0,1],[1,0],[1,1],[1,2]],
+ [[0,0],[1,0],[2,0],[2,1]],
+ [[0,0],[0,1],[0,2],[1,1]],
+ [[0,0],[0,1],[0,2],[1,2]],
+ [[0,0],[1,0],[2,0],[3,0]],
+ [[0,0],[0,1],[0,2],[0,3]]
+];
+
+let grid,score=0,best=Number(localStorage.getItem("bvbest")||0);
+let pieces=[],dragIndex=-1,ghost=null,previewCells=[];
+
+document.getElementById("best").textContent=best;
+
+function randomShape(){
+ return shapes[Math.floor(Math.random()*shapes.length)];
+}
+
+function newGame(){
+ grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+ score=0;
+ pieces=[randomShape(),randomShape(),randomShape()];
+ document.getElementById("score").textContent=0;
+ document.getElementById("message").textContent="";
+ draw();
+ drawPieces();
+}
+
+function draw(){
+ const board=document.getElementById("board");
+ board.innerHTML="";
+ for(let r=0;r<SIZE;r++){
+  for(let c=0;c<SIZE;c++){
+   const cell=document.createElement("div");
+   cell.className="cell"+(grid[r][c]?" filled":"");
+   cell.dataset.row=r;
+   cell.dataset.col=c;
+   board.appendChild(cell);
+  }
+ }
+}
+
+function drawPieces(){
+ const box=document.getElementById("pieces");
+ box.innerHTML="";
+ pieces.forEach((shape,i)=>{
+  const card=document.createElement("div");
+  card.className="piece"+(shape===null?" used":"");
+  if(shape){
+   const h=Math.max(...shape.map(p=>p[0]))+1;
+   const w=Math.max(...shape.map(p=>p[1]))+1;
+   const el=document.createElement("div");
+   el.className="shape";
+   el.style.gridTemplateColumns=`repeat(${w},19px)`;
+   for(let r=0;r<h;r++){
+    for(let c=0;c<w;c++){
+     const b=document.createElement("div");
+     if(shape.some(p=>p[0]===r&&p[1]===c))b.className="block";
+     else{b.style.width="19px";b.style.height="19px"}
+     el.appendChild(b);
+    }
+   }
+   card.appendChild(el);
+   card.addEventListener("pointerdown",e=>startDrag(e,i));
+  }
+  box.appendChild(card);
+ });
+}
+
+function fits(shape,row,col){
+ return shape.every(([dy,dx])=>{
+  const r=row+dy,c=col+dx;
+  return r>=0&&r<SIZE&&c>=0&&c<SIZE&&!grid[r][c];
+ });
+}
+
+function startDrag(e,index){
+ if(!pieces[index])return;
+ e.preventDefault();
+ dragIndex=index;
+ const shape=pieces[index];
+ ghost=document.createElement("div");
+ ghost.className="ghost";
+ const h=Math.max(...shape.map(p=>p[0]))+1;
+ const w=Math.max(...shape.map(p=>p[1]))+1;
+ ghost.style.gridTemplateColumns=`repeat(${w},23px)`;
+ for(let r=0;r<h;r++){
+  for(let c=0;c<w;c++){
+   const b=document.createElement("div");
+   if(shape.some(p=>p[0]===r&&p[1]===c))b.className="block";
+   else{b.style.width="23px";b.style.height="23px"}
+   ghost.appendChild(b);
+  }
+ }
+ document.body.appendChild(ghost);
+ moveDrag(e);
+ document.addEventListener("pointermove",moveDrag);
+ document.addEventListener("pointerup",endDrag,{once:true});
+ document.addEventListener("pointercancel",endDrag,{once:true});
+}
+
+function moveDrag(e){
+ if(!ghost)return;
+ ghost.style.left=e.clientX+"px";
+ ghost.style.top=(e.clientY-65)+"px";
+ clearPreview();
+
+ const board=document.getElementById("board");
+ const rect=board.getBoundingClientRect();
+ if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return;
+
+ const step=rect.width/10;
+ const col=Math.floor((e.clientX-rect.left)/step);
+ const row=Math.floor((e.clientY-rect.top)/step);
+ const shape=pieces[dragIndex];
+ const h=Math.max(...shape.map(p=>p[0]))+1;
+ const w=Math.max(...shape.map(p=>p[1]))+1;
+ const top=row-Math.floor(h/2);
+ const left=col-Math.floor(w/2);
+ const valid=fits(shape,top,left);
+
+ shape.forEach(([dy,dx])=>{
+  const r=top+dy,c=left+dx;
+  const cell=board.children[r*10+c];
+  if(cell&&r>=0&&r<10&&c>=0&&c<10){
+   cell.classList.add(valid?"preview":"bad");
+   previewCells.push(cell);
+  }
+ });
+ ghost.dataset.row=top;
+ ghost.dataset.col=left;
+ ghost.dataset.valid=valid?"yes":"no";
+}
+
+function clearPreview(){
+ previewCells.forEach(c=>c.classList.remove("preview","bad"));
+ previewCells=[];
+}
+
+function endDrag(e){
+ document.removeEventListener("pointermove",moveDrag);
+ if(ghost){
+  const row=Number(ghost.dataset.row);
+  const col=Number(ghost.dataset.col);
+  const valid=ghost.dataset.valid==="yes";
+  ghost.remove();
+  ghost=null;
+  clearPreview();
+  if(valid&&dragIndex>=0)place(row,col);
+ }
+ dragIndex=-1;
+}
+
+function place(row,col){
+ const shape=pieces[dragIndex];
+ if(!shape||!fits(shape,row,col))return;
+
+ shape.forEach(([dy,dx])=>grid[row+dy][col+dx]=1);
+ score+=shape.length;
+
+ pieces[dragIndex]=null;
+
+ let fullRows=[];
+ let fullCols=[];
+
+ for(let r=0;r<SIZE;r++){
+  if(grid[r].every(Boolean))fullRows.push(r);
+ }
+ for(let c=0;c<SIZE;c++){
+  if(grid.every(row=>row[c]))fullCols.push(c);
+ }
+
+ fullRows.forEach(r=>grid[r].fill(0));
+ fullCols.forEach(c=>{
+  for(let r=0;r<SIZE;r++)grid[r][c]=0;
+ });
+
+ const cleared=fullRows.length+fullCols.length;
+ if(cleared>0)score+=cleared*10+Math.max(0,cleared-1)*5;
+
+ document.getElementById("score").textContent=score;
+
+ if(score>best){
+  best=score;
+  localStorage.setItem("bvbest",best);
+  document.getElementById("best").textContent=best;
+ }
+
+ if(pieces.every(p=>p===null)){
+  pieces=[randomShape(),randomShape(),randomShape()];
+ }
+
+ draw();
+ drawPieces();
+
+ if(!hasMoves()){
+  document.getElementById("message").textContent="GAME OVER!";
+ }
+}
+
+function hasMoves(){
+ return pieces.some(shape=>{
+  if(!shape)return false;
+  for(let r=0;r<SIZE;r++){
+   for(let c=0;c<SIZE;c++){
+    if(fits(shape,r,c))return true;
+   }
+  }
+  return false;
+ });
+}
+
+newGame();
+</script>
+</body>
+</html>
+```
